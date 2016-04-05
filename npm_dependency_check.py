@@ -11,7 +11,6 @@ import zipfile
 import hasher # hasher.py
 import npm    # npm.py
 import http   # http.py
-import util   # util.py
 
 # pylint: disable=C0103
 glob_num_warnings = 0
