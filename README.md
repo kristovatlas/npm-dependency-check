@@ -52,3 +52,8 @@ npm_dependency_check.py:25: UserWarning: Hash mismatch for 'lib/bigint.js' in 'b
   warnings.warn(string)
 ATTENTION: Execution produced 2 warnings.
 ```
+
+## Author
+
+[https://twitter.com/kristovatlas](@kristovatlas)
+
