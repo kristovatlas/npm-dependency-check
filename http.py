@@ -7,7 +7,7 @@ import re
 from tempfile import mkstemp
 import os
 
-ENABLE_DEBUG_PRINT = True
+ENABLE_DEBUG_PRINT = False
 
 MAX_RETRY_TIME_IN_SEC = 5
 NUM_SEC_TIMEOUT = 30
@@ -85,9 +85,10 @@ def fetch_url(url, fetch_tmp_file=False):
         except (urllib2.HTTPError, ssl.SSLError, urllib2.URLError,
                 SocketError) as err:
             dprint(str(err))
-            if current_retry_time_in_sec == MAX_RETRY_TIME_IN_SEC:
-                if not (hasattr(err, 'code') and err.code == 404):
-                    print str(err)
+            if hasattr(err, 'code') and err.code == 404:
+                raise #don't retry for HTTP 404
+            elif current_retry_time_in_sec == MAX_RETRY_TIME_IN_SEC:
+                print str(err)
                 raise
             else:
                 current_retry_time_in_sec += 1
