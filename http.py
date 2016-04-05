@@ -7,8 +7,6 @@ import re
 from tempfile import mkstemp
 import os
 
-import util # util.py
-
 ENABLE_DEBUG_PRINT = False
 
 MAX_RETRY_TIME_IN_SEC = 5
