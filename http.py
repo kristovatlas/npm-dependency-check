@@ -106,7 +106,8 @@ def download_to_tmp(url, req):
     if content_len_str is not None:
         total_size = int(content_len_str.strip())
     if total_size == 0:
-        raise ValueException
+        raise ValueError(("Size of file returned by request to '%s' is 0 bytes "
+                          "according to HTTP response header.") % url)
     CHUNK = 256 * 10240
 
     with open(tmp_filename, 'w') as tmp_file:
