@@ -55,5 +55,5 @@ ATTENTION: Execution produced 2 warnings.
 
 ## Author
 
-[https://twitter.com/kristovatlas](@kristovatlas)
+[@kristovatlas](https://twitter.com/kristovatlas)
 
