@@ -7,6 +7,7 @@ import warnings
 import tempfile
 from shutil import rmtree
 import zipfile
+from urllib2 import HTTPError
 
 import hasher # hasher.py
 import npm    # npm.py
@@ -585,22 +586,36 @@ def compare_package_to_github(local_data_json, github_location, package_version,
     assert isinstance(github_location, str)
     assert isinstance(package_version, str)
 
-    url = http.get_zip_link(github_location, package_version)
-    if url is None:
-        warn("Could not resolve a download link for %s" %
-             get_package_name_or_location(local_data_json))
-        return
+    urls = http.get_possible_zip_urls(github_location, package_version)
+    zip_filename = None
+    for url in urls:
+        if args.verbose:
+            print "Trying to download zip file from '%s'..." % url
 
-    if args.verbose:
-        print "Downloading zip file from '%s'" % url
-    zip_filename = http.fetch_url(url, fetch_tmp_file=True)
+        try:
+            zip_filename = http.fetch_url(url, fetch_tmp_file=True)
+            if args.verbose:
+                print "Successfully downloaded data from '%s'." % url
+            break #found a good url
+        except HTTPError, err:
+            if hasattr(err, 'code') and err.code == 404:
+                continue #try next url
+            else:
+                raise
+
+    if zip_filename is None:
+        warn(("Could not resolve GitHub link for '%s'; maybe this project does "
+              "not have a tagged release for version '%s'? Skipping comparison "
+              "to GitHub project.") %
+              (get_package_name_or_location(local_data_json), package_version))
+        return
 
     tmp_dir = tempfile.mkdtemp()
     with zipfile.ZipFile(zip_filename, 'r') as downloaded_zip:
         downloaded_zip.extractall(tmp_dir)
 
-    # if the extraction worked correctly, there should be a single sub-directory
-    # in the temp directory
+    # if the extraction worked correctly, there should be a single
+    # sub-directory in the temp directory
     extracted_files = os.listdir(tmp_dir)
     if len(extracted_files) != 1:
         warn(("Failed to extract zip file for '%s'; expected 1 sub-directory "
@@ -611,8 +626,8 @@ def compare_package_to_github(local_data_json, github_location, package_version,
         return
 
     package_location = os.path.join(tmp_dir, extracted_files[0])
-    github_package_json = get_package_data(package_location, extensions_hashed,
-                                           args, github_comparison=False)
+    github_package_json = get_package_data(
+        package_location, extensions_hashed, args, github_comparison=False)
     num_warnings = compare_jsons(package_location, local_data_json,
                                  github_package_json, args)
 
@@ -622,8 +637,8 @@ def compare_package_to_github(local_data_json, github_location, package_version,
             print("No discrepancies found compared to GitHub copy of %s." %
                   get_package_name_or_location(local_data_json))
     else:
-        print(("Encountered %d discrepancies comparing %s to copy "
-               "downloaded from GitHub.") %
+        print(("Encountered %d discrepancies comparing %s to copy downloaded "
+               "from GitHub.") %
               (num_warnings, get_package_name_or_location(local_data_json)))
 
     cleanup(zip_filename, tmp_dir)

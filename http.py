@@ -7,7 +7,7 @@ import re
 from tempfile import mkstemp
 import os
 
-ENABLE_DEBUG_PRINT = False
+ENABLE_DEBUG_PRINT = True
 
 MAX_RETRY_TIME_IN_SEC = 5
 NUM_SEC_TIMEOUT = 30
@@ -18,15 +18,19 @@ def looks_like_version(version):
     pattern = re.compile(r'^(\w+\.)?(\w+\.)?(\w+)$')
     return bool(pattern.match(version))
 
-def get_zip_link(github_project_url, version):
-    """Get a download link to the .zip file for the specified version.
+def get_possible_zip_urls(github_project_url, version):
+    """Get likely download links to the .zip file for the specified version.
 
-    Example:
+    Examples:
     https://github.com/blockchain/My-Wallet-V3/archive/v3.13.0.zip
+    https://github.com/cryptocoinjs/bigi/archive/1.4.1.zip
 
     Args:
         github_project_url (str): URL of project on GitHub.com
         version (str):
+
+    Returs:
+        List[str]: A list of urls as strings
     """
     assert isinstance(github_project_url, str)
     assert looks_like_version(version)
@@ -34,7 +38,12 @@ def get_zip_link(github_project_url, version):
 
     github_project_url = github_project_url.rstrip('/')
 
-    return "%s/archive/v%s.zip" % (github_project_url, version)
+    urls = []
+
+    urls.append("%s/archive/v%s.zip" % (github_project_url, version))
+    urls.append("%s/archive/%s.zip" % (github_project_url, version))
+
+    return urls
 
 def fetch_url(url, fetch_tmp_file=False):
     """Fetch contents of remote page as string for specified url.
@@ -77,7 +86,9 @@ def fetch_url(url, fetch_tmp_file=False):
                 SocketError) as err:
             dprint(str(err))
             if current_retry_time_in_sec == MAX_RETRY_TIME_IN_SEC:
-                raise Exception
+                if not (hasattr(err, 'code') and err.code == 404):
+                    print str(err)
+                raise
             else:
                 current_retry_time_in_sec += 1
 
