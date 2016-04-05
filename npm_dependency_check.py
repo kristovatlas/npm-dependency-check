@@ -157,7 +157,8 @@ def compare_jsons(package_location, prev_data_json, new_data_json, args):
         if ('github_location' in prev_data_json and
                 'github_location' not in new_data_json):
             warn("GitHub link for '%s' has been deleted. Was: '%s'" %
-                 (package_location, prev_data_json['github_location']))
+                 (os.path.basename(package_location),
+                  prev_data_json['github_location']))
             num_warnings += 1
         elif ('github_location' not in prev_data_json and
               'github_location' in new_data_json):
@@ -170,7 +171,8 @@ def compare_jsons(package_location, prev_data_json, new_data_json, args):
               prev_data_json['github_location'] !=
               new_data_json['github_location']):
             warn("GitHub link for '%s' has been modified. Was: '%s' Now: '%s'" %
-                 (package_location, prev_data_json['github_location'],
+                 (os.path.basename(package_location),
+                  prev_data_json['github_location'],
                   new_data_json['github_location']))
             num_warnings += 1
 
