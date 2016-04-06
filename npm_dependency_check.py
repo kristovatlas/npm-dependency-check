@@ -576,8 +576,8 @@ def get_file_data(location_cwd, location_in_package, files, extensions_hashed,
         else:
             for ext in extensions_hashed:
                 if filename.endswith(ext):
-                    file_in_package = os.path.join(
-                        os.path.basename(location_in_package), filename)
+                    file_in_package = os.path.join(location_in_package,
+                                                   filename)
                     file_cwd = os.path.join(location_cwd, filename)
                     file_hash = hasher.hash_file(file_cwd)
                     file_json = {'file_location': file_in_package,
