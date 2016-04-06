@@ -172,6 +172,8 @@ def compare_jsons(package_location, prev_data_json, new_data_json, args):
         # slash
         elif ('github_location' in prev_data_json and
               'github_location' in new_data_json and
+              (type(prev_data_json['github_location']) ==
+               type(new_data_json['github_location'])) and
               util.rstrip_once(prev_data_json['github_location'], '/') !=
               util.rstrip_once(new_data_json['github_location'], '/')):
             warn("GitHub link for '%s' has been modified. Was: '%s' Now: '%s'" %
