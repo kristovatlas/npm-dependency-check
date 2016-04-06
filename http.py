@@ -14,8 +14,13 @@ NUM_SEC_TIMEOUT = 30
 NUM_SEC_SLEEP = 0
 
 def looks_like_version(version):
-    """Returns whether the string looks like a legitimate version number"""
-    pattern = re.compile(r'^(\w+\.)?(\w+\.)?(\w+)$')
+    """Returns whether the string looks like a legitimate version number
+
+    Example version strings:
+        * 1.0.0-rc4
+        * 1.0.0
+    """
+    pattern = re.compile(r'^([\w\-]+\.)?([\w\-]+\.)?([\w\-]+)$')
     return bool(pattern.match(version))
 
 def get_possible_zip_urls(github_project_url, version):
