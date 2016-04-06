@@ -12,6 +12,7 @@ from urllib2 import HTTPError
 import hasher # hasher.py
 import npm    # npm.py
 import http   # http.py
+import util   # util.py
 
 # pylint: disable=C0103
 glob_num_warnings = 0
@@ -167,10 +168,12 @@ def compare_jsons(package_location, prev_data_json, new_data_json, args):
                  (package_location, new_data_json['github_location']))
             num_warnings += 1
 
+        # security: relax comparison not to trigger on difference of trailing
+        # slash
         elif ('github_location' in prev_data_json and
               'github_location' in new_data_json and
-              prev_data_json['github_location'] !=
-              new_data_json['github_location']):
+              util.rstrip_once(prev_data_json['github_location'], '/') !=
+              util.rstrip_once(new_data_json['github_location'], '/')):
             warn("GitHub link for '%s' has been modified. Was: '%s' Now: '%s'" %
                  (os.path.basename(package_location),
                   prev_data_json['github_location'],
@@ -327,6 +330,22 @@ def get_args():
                               'file, do not report when the apparent github '
                               'project location has changed.'))
 
+    parser.add_argument('--verify-against-github', dest='github_verify',
+                        action='store_true',
+                        help=('when examining the target npm package, '
+                              'sensitive code files (as defined by '
+                              '--hashed-extensions) will be compared against '
+                              'the copy found on GitHub.com. warnings will be '
+                              'emitted if there are discrepancies between the '
+                              'local copy and the version on GitHub.'))
+    parser.add_argument('--no-verify-against-github', dest='github_verify',
+                        action='store_false',
+                        help=('when examining the target npm package, '
+                              'sensitive code files (as defined by '
+                              '--hashed-extensions) will not be compared '
+                              'against  the copy found on GitHub.com. '
+                              '(Default)'))
+
     parser.add_argument('--verbose', dest='verbose', action='store_true',
                         help=('enable verbose output about status of execution '
                               '(Disabled by default)'))
@@ -336,7 +355,8 @@ def get_args():
 
     parser.set_defaults(file_hash=True, extensions=['.js,.json'],
                         ver_mismatch=True, hash_mismatch=True,
-                        file_missing=True, github_changed=True, verbose=False)
+                        file_missing=True, github_changed=True,
+                        github_verify=False, verbose=False)
 
     args = parser.parse_args()
 
@@ -349,11 +369,13 @@ def get_args():
                "hash_mismatch: %s\n"
                "file_missing: %s\n"
                "github_changed: %s\n"
+               "github_verify: %s\n"
                "verbose: %s") %
               tuple(str(x) for x in (args.input, args.output, args.file_hash,
                                      args.extensions[0], args.ver_mismatch,
                                      args.hash_mismatch, args.file_missing,
-                                     args.github_changed, args.verbose)))
+                                     args.github_changed, args.github_verify,
+                                     args.verbose)))
 
     check_args(args)
 
@@ -371,6 +393,10 @@ def check_args(args):
     for ext in args.extensions[0].split(','):
         assert ext != '', ("'%s contains an empty file extension" %
                            str(args.extensions[0]))
+
+    if args.github_verify:
+        raise NotImplementedError("Comparison of local copy to files on "
+                                  "GitHub is not yet supported.")
 
 def get_package_data(package_location, extensions_hashed, args,
                      github_comparison=True):
@@ -483,8 +509,12 @@ def get_package_data(package_location, extensions_hashed, args,
     # version on GitHub if it's available and warnings emitted if it doesn't
     # match.
 
+    if not args.github_verify and args.verbose:
+        print(("Comparison to GitHub copy disabled; skipping comparison for "
+               "'%s'") % package_name)
+
     if (github_location is not None and github_location != '' and
-            github_comparison):
+            github_comparison and args.github_verify):
         compare_package_to_github(json_obj, github_location, package_version,
                                   extensions_hashed, args)
 
@@ -582,6 +612,10 @@ def compare_package_to_github(local_data_json, github_location, package_version,
         args (List): List of arguments acquired by `parse_args`.
     """
     dprint("Entered compare_package_to_github()")
+
+    #TODO: need to add a list of items to ignore as differences between local
+    #installed copy and GitHub copy. For example, in package.json file,
+    #_args, _from, etc.
 
     assert isinstance(github_location, str)
     assert isinstance(package_version, str)
