@@ -8,6 +8,7 @@ import tempfile
 from shutil import rmtree
 import zipfile
 from urllib2 import HTTPError
+from copy import deepcopy
 
 import hasher # hasher.py
 import npm    # npm.py
@@ -25,6 +26,28 @@ def warn(string):
     glob_num_warnings += 1
     warnings.warn(string)
 
+def remove_package_location(package_data_json):
+    """Destructively removes 'package_location' from `dict`."""
+    try:
+        package_data_json.pop('package_location')
+    except KeyError:
+        pass
+
+    for key, value in package_data_json.iteritems():
+        if isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    remove_package_location(item)
+
+def write_json_file_safe(package_data_json, out_file):
+    """Writes JSON data to file but removes 'package_location' attribute.
+
+    Uses `deepcopy` to avoid being destructive.
+    """
+    package_data_copy = deepcopy(package_data_json)
+    remove_package_location(package_data_copy)
+    out_file.write(json.dumps(package_data_copy))
+
 def main():
     """Process arguments and do stuff."""
     args = get_args()
@@ -41,7 +64,7 @@ def main():
     dprint(json.dumps(package_data_json))
 
     if args.output:
-        args.output[0].write(json.dumps(package_data_json))
+        write_json_file_safe(package_data_json, args.output[0])
         if args.verbose:
             print "Wrote results to output file."
 
@@ -99,7 +122,6 @@ def compare_jsons(package_location, prev_data_json, new_data_json, args):
     assert 'package_name' in prev_data_json
     assert 'package_name' in new_data_json
 
-    assert 'package_location' in prev_data_json
     assert 'package_location' in new_data_json
 
     num_warnings = 0
@@ -196,12 +218,12 @@ def compare_jsons(package_location, prev_data_json, new_data_json, args):
             for new_submodule in new_data_json['submodules']:
                 if is_matching_submodule(prev_submodule, new_submodule):
                     found_old_submodule = True
-                    compare_jsons(prev_submodule['package_location'],
+                    compare_jsons(new_submodule['package_location'],
                                   prev_submodule, new_submodule, args)
                     break
             if not found_old_submodule:
                 warn("Missing sub-dependency '%s' from '%s'" %
-                     (prev_submodule['package_location'], package_location))
+                     (new_submodule['package_location'], package_location))
                 num_warnings += 1
 
         # look for new submodules
